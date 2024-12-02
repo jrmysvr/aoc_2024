@@ -20,7 +20,12 @@ fn solve_part1(input: &String) -> String {
 }
 
 fn solve_part2(input: &String) -> String {
-    String::new()
+    let reports = parse_input(input);
+    reports
+        .iter()
+        .map(|report| if is_safe_tolerant(report) { 1 } else { 0 })
+        .sum::<Num>()
+        .to_string()
 }
 
 type Num = i32;
@@ -64,6 +69,14 @@ fn all_respect_max_diff(report: &Report, max_diff: Num) -> bool {
 
 fn is_safe(report: &Report) -> bool {
     (all_decreasing(report) || all_increasing(report)) && all_respect_max_diff(report, 3)
+}
+
+fn is_safe_tolerant(report: &Report) -> bool {
+    (0..report.len())
+        .map(|i| [&report[..i], &report[i + 1..]].concat())
+        .filter(is_safe)
+        .count()
+        > 0
 }
 
 #[cfg(test)]
@@ -123,6 +136,6 @@ mod test {
 
     #[test]
     fn test_full_part2() {
-        assert_eq!(solve_part2(&get_input(0)), "");
+        assert_eq!(solve_part2(&get_input(0)), "4");
     }
 }
