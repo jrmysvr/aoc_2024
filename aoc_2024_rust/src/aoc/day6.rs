@@ -1,4 +1,5 @@
 use crate::aoc::input::read_input_for_day;
+use std::collections::HashSet;
 
 pub fn run() {
     println!("Day 6 Solutions");
@@ -22,7 +23,7 @@ fn parse_input(input: &String) -> Grid {
 }
 
 type Coord = (usize, usize);
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct Pos {
     coord: Coord,
     dir: char,
@@ -102,7 +103,7 @@ fn exits_grid(pos: &Pos, grid: &Grid) -> bool {
 fn solve_part1(input: &String) -> String {
     let grid = parse_input(input);
     let mut pos = find_start_position(&grid);
-    let mut unique_coords = std::collections::HashSet::<Coord>::new();
+    let mut unique_coords = HashSet::<Coord>::new();
     unique_coords.insert(pos.coord);
     while !exits_grid(&pos, &grid) {
         pos = take_step_or_turn(&pos, &grid);
@@ -112,8 +113,69 @@ fn solve_part1(input: &String) -> String {
     unique_coords.len().to_string()
 }
 
-fn solve_part2(_input: &String) -> String {
-    String::new()
+fn coords_around(coord: &Coord, grid: &Grid) -> Vec<Coord> {
+    let mut coords = Vec::<Coord>::new();
+
+    for di in [-1, 0, 1] {
+        let i = coord.0 as isize + di;
+        for dj in [-1, 0, 1] {
+            let j = coord.1 as isize + dj;
+            if i > 0 && i < grid.len() as isize && j > 0 && j < grid[0].len() as isize {
+                let i = i as usize;
+                let j = j as usize;
+                if grid[i][j] == '.' && (i, j) != *coord {
+                    coords.push((i, j));
+                }
+            }
+        }
+    }
+
+    coords
+}
+
+fn solve_part2(input: &String) -> String {
+    let grid = parse_input(input);
+    let mut pos = find_start_position(&grid);
+    let mut unique_coords = HashSet::<Coord>::new();
+    unique_coords.insert(pos.coord);
+    let mut columns = HashSet::<usize>::new();
+    let mut rows = HashSet::<usize>::new();
+    while !exits_grid(&pos, &grid) {
+        pos = take_step_or_turn(&pos, &grid);
+        unique_coords.insert(pos.coord);
+        match pos.dir {
+            '^' | 'v' => columns.insert(pos.coord.1),
+            '<' | '>' => rows.insert(pos.coord.0),
+            _ => false,
+        };
+    }
+
+    let candidates = unique_coords
+        .iter()
+        .filter(|coord| rows.contains(&coord.0) || columns.contains(&coord.1))
+        .map(|coord| coords_around(coord, &grid))
+        .flatten()
+        .collect::<Vec<Coord>>();
+
+    let mut new_obstacles = HashSet::<Coord>::new();
+    for coord in candidates {
+        let mut grid = parse_input(input);
+        grid[coord.0][coord.1] = '#';
+        let mut pos = find_start_position(&grid);
+        let mut unique_pos = HashSet::<Pos>::new();
+        unique_pos.insert(pos.clone());
+        while !exits_grid(&pos, &grid) {
+            pos = take_step_or_turn(&pos, &grid);
+            if unique_pos.contains(&pos) {
+                new_obstacles.insert(coord);
+                break;
+            }
+
+            unique_pos.insert(pos.clone());
+        }
+    }
+
+    new_obstacles.len().to_string()
 }
 
 #[cfg(test)]
@@ -205,6 +267,6 @@ mod test {
 
     #[test]
     fn test_full_part2() {
-        assert_eq!(solve_part2(&get_input(0)), "");
+        assert_eq!(solve_part2(&get_input(0)), "6");
     }
 }
