@@ -4,15 +4,17 @@ pub mod day3;
 pub mod day4;
 pub mod day5;
 pub mod day6;
+pub mod day7;
 pub mod input;
 
-static DAYS: &[fn(); 6] = &[
+static DAYS: &[fn(); 7] = &[
     day1::run,
     day2::run,
     day3::run,
     day4::run,
     day5::run,
     day6::run,
+    day7::run,
 ];
 
 pub fn run_all() {
