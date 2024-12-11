@@ -1,13 +1,12 @@
 mod aoc;
-use std::env;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    dbg!(&args);
-    if args.len() > 1 {
-        let day = &args[1].parse::<usize>().unwrap();
-        aoc::run(*day);
-    } else {
+    let args = std::env::args().collect::<Vec<String>>();
+
+    if args.len() < 2 {
         aoc::run_all()
+    } else {
+        let day = args[1].parse::<usize>().unwrap();
+        aoc::run(day);
     }
 }
