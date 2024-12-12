@@ -90,7 +90,31 @@ fn solve_part1(input: &String) -> String {
 }
 
 fn solve_part2(input: &String) -> String {
-    String::new()
+    let mut stones = parse_input(input);
+
+    let mut map = std::collections::HashMap::<Stone, Stones>::new();
+    let mut stone_count = stones.len();
+    let n_blinks = 75;
+
+    for stone in stones.iter() {
+        map.insert(*stone, Stones::new());
+    }
+
+    for _ in 0..n_blinks {
+        let mapped_stones = map.keys().clone();
+        for stone in mapped_stones {
+            let (left_stone, right) = split_stone(&stone);
+            if let Some(right_stone) = right {
+                map.entry(*stone).and_modify(|s| s.push(left_stone));
+                map.entry(*stone).and_modify(|s| s.push(right_stone));
+            } else {
+                let left_stone = convert_stone(&left_stone);
+                map.entry(*stone).and_modify(|s| s.push(left_stone));
+            }
+        }
+    }
+
+    stone_count.to_string()
 }
 
 #[cfg(test)]
@@ -145,6 +169,6 @@ mod test {
 
     #[test]
     fn test_full_part2() {
-        assert_eq!(solve_part2(&get_input(0)), "");
+        assert_eq!(solve_part2(&get_input(0)), "0");
     }
 }
