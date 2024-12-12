@@ -39,10 +39,6 @@ fn find_trailheads_in(topo: &Topo) -> Positions {
     find_positions_with_value(0, topo)
 }
 
-fn find_peaks_in(topo: &Topo) -> Positions {
-    find_positions_with_value(9, topo)
-}
-
 fn neighbors_of(pos: &Pos, topo: &Topo, ignore: &Positions) -> Positions {
     let mut neighbors = Positions::new();
     // Up
@@ -94,6 +90,23 @@ fn score(pos: &Pos, topo: &Topo) -> Num {
     tops.len() as Num
 }
 
+fn rating(pos: &Pos, topo: &Topo) -> Num {
+    let mut score = 0;
+    let curr = topo[pos.0][pos.1];
+    for npos in neighbors_of(pos, topo, &vec![]) {
+        let neighbor = topo[npos.0][npos.1];
+        if neighbor > curr && (neighbor - curr) == 1 {
+            if neighbor == 9 {
+                score += 1;
+            } else {
+                score += rating(&npos, topo);
+            }
+        }
+    }
+
+    score
+}
+
 fn solve_part1(input: &String) -> String {
     let topo = parse_input(input);
     find_trailheads_in(&topo)
@@ -104,7 +117,12 @@ fn solve_part1(input: &String) -> String {
 }
 
 fn solve_part2(input: &String) -> String {
-    String::new()
+    let topo = parse_input(input);
+    find_trailheads_in(&topo)
+        .iter()
+        .map(|pos| rating(pos, &topo))
+        .fold(0, |acc, score| acc + score)
+        .to_string()
 }
 
 #[cfg(test)]
@@ -126,6 +144,13 @@ mod test {
 32019012
 01329801
 10456732",
+        "
+012345
+123456
+234567
+345678
+406789
+567890",
     ];
 
     fn get_input(ix: usize) -> String {
@@ -172,6 +197,13 @@ mod test {
     }
 
     #[test]
+    fn test_rating() {
+        let topo = parse_input(&get_input(2));
+        let trailheads = find_trailheads_in(&topo);
+        assert_eq!(rating(&trailheads[0], &topo), 227);
+    }
+
+    #[test]
     fn test_full_part1() {
         assert_eq!(solve_part1(&get_input(0)), "1");
         assert_eq!(solve_part1(&get_input(1)), "36");
@@ -179,6 +211,7 @@ mod test {
 
     #[test]
     fn test_full_part2() {
-        assert_eq!(solve_part2(&get_input(0)), "");
+        assert_eq!(solve_part2(&get_input(2)), "227");
+        assert_eq!(solve_part2(&get_input(1)), "81");
     }
 }
