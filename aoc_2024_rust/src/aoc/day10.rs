@@ -68,43 +68,37 @@ fn neighbors_of(pos: &Pos, topo: &Topo, ignore: &Positions) -> Positions {
         .collect::<Positions>()
 }
 
-fn score(pos: &Pos, topo: &Topo, ignore: &Positions) -> Num {
-    let mut all_neighbors = vec![
-        (pos, neighbors_of(pos, topo, ignore))
-    ];
-    let mut ignore = ignore.clone();
+fn score(pos: &Pos, topo: &Topo) -> Num {
+    let mut ignore = Positions::new();
+    let mut all_neighbors = vec![(pos.clone(), neighbors_of(pos, topo, &ignore))];
     ignore.push(pos.clone());
-    let mut tops = Positions::new();
-    while all_neighbors.len() > 0 {
+    let mut tops = std::collections::HashSet::<Pos>::new();
+    let mut length = all_neighbors.len();
+    while length > 0 {
         let (pos, neighbors) = all_neighbors.remove(0);
         let curr = topo[pos.0][pos.1];
         for npos in neighbors {
             let neighbor = topo[npos.0][npos.1];
-            println!("Checking {npos:?} {neighbor}");
             if neighbor > curr && (neighbor - curr) == 1 {
-                println!("Step {npos:?} {neighbor}");
                 if neighbor == 9 {
-                    println!("Top!");
-                    tops.push(npos);
+                    tops.insert(npos);
                 } else {
-                    all_neighbors.push((&npos.clone(), neighbors_of(&npos, topo, &ignore)));
+                    all_neighbors.push((npos.clone(), neighbors_of(&npos, topo, &ignore)));
                 }
+                ignore.push(npos);
             }
-            ignore.push(npos);
         }
+        length = all_neighbors.len();
     }
 
-    println!("{tops:?}");
-    println!("Done!");
     tops.len() as Num
 }
 
 fn solve_part1(input: &String) -> String {
     let topo = parse_input(input);
-    //find_peaks_in(&topo)
     find_trailheads_in(&topo)
         .iter()
-        .map(|pos| score(pos, &topo, &vec![]))
+        .map(|pos| score(pos, &topo))
         .fold(0, |acc, score| acc + score)
         .to_string()
 }
@@ -156,11 +150,11 @@ mod test {
     fn test_score() {
         let topo = parse_input(&get_input(0));
         let trailheads = find_trailheads_in(&topo);
-        assert_eq!(score(&trailheads[0], &topo, &vec![]), 1);
+        assert_eq!(score(&trailheads[0], &topo), 1);
 
         let topo = parse_input(&get_input(1));
         let trailheads = find_trailheads_in(&topo);
-        assert_eq!(score(&trailheads[0], &topo, &vec![]), 5);
+        assert_eq!(score(&trailheads[0], &topo), 5);
     }
 
     #[test]
@@ -180,6 +174,7 @@ mod test {
     #[test]
     fn test_full_part1() {
         assert_eq!(solve_part1(&get_input(0)), "1");
+        assert_eq!(solve_part1(&get_input(1)), "36");
     }
 
     #[test]
