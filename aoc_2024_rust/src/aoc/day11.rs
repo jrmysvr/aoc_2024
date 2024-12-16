@@ -90,6 +90,7 @@ fn solve_part1(input: &String) -> String {
 }
 
 fn solve_part2(input: &String) -> String {
+    /*
     let mut stones = parse_input(input);
 
     let mut map = std::collections::HashMap::<Stone, Stones>::new();
@@ -115,6 +116,8 @@ fn solve_part2(input: &String) -> String {
     }
 
     stone_count.to_string()
+    */
+    String::new()
 }
 
 #[cfg(test)]
