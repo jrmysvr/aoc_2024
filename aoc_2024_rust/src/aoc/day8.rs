@@ -47,24 +47,16 @@ fn in_bounds(loc: &Loc, map: &Map) -> bool {
     loc.0 >= 0 && loc.0 < map.len() as isize && loc.1 >= 0 && loc.1 < map[0].len() as isize
 }
 
-fn calc_two_antinodes_of(loc_a: &Loc, loc_b: &Loc, map: &Map) -> (Option<Loc>, Option<Loc>) {
+fn calc_antinode_of(loc_a: &Loc, loc_b: &Loc, map: &Map) -> Option<Loc> {
     let diff_0 = loc_b.0 - loc_a.0;
     let diff_1 = loc_b.1 - loc_a.1;
-    let loc_a = (loc_a.0 - diff_0, loc_a.1 - diff_1);
-    let loc_b = (loc_b.0 + diff_0, loc_b.1 + diff_1);
+    let loc = (loc_a.0 - diff_0, loc_a.1 - diff_1);
 
-    (
-        if in_bounds(&loc_a, &map) {
-            Some(loc_a)
-        } else {
-            None
-        },
-        if in_bounds(&loc_b, &map) {
-            Some(loc_b)
-        } else {
-            None
-        },
-    )
+    if in_bounds(&loc, &map) {
+        Some(loc)
+    } else {
+        None
+    }
 }
 
 fn calc_antinodes_inline_with(loc_a: &Loc, loc_b: &Loc, map: &Map) -> Locs {
@@ -89,11 +81,10 @@ fn calc_antinodes_inline_with(loc_a: &Loc, loc_b: &Loc, map: &Map) -> Locs {
 fn calc_antinodes_of(locs: &Locs, map: &Map) -> Locs {
     let mut antinode_locs = Locs::new();
     for ab in locs.into_iter().combinations(2) {
-        let (opt_a, opt_b) = calc_two_antinodes_of(&ab[0], &ab[1], map);
-        if let Some(loc_a) = opt_a {
+        if let Some(loc_a) = calc_antinode_of(&ab[0], &ab[1], map) {
             antinode_locs.push(loc_a);
         }
-        if let Some(loc_b) = opt_b {
+        if let Some(loc_b) = calc_antinode_of(&ab[1], &ab[0], map) {
             antinode_locs.push(loc_b);
         }
     }
