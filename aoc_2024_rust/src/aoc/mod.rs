@@ -17,7 +17,6 @@ static DAYS: &[fn()] = &[
     day6::run,
     // Day 7
     || {},
-    // Day 8
     day8::run,
     // Day 9
     || {},

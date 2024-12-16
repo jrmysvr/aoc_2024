@@ -1,6 +1,6 @@
 use crate::aoc::input::read_input_for_day;
-use std::collections::HashMap;
 use itertools::Itertools;
+use std::collections::{HashMap, HashSet};
 
 pub fn run() {
     println!("Day 8 Solutions");
@@ -12,7 +12,7 @@ pub fn run() {
     println!("\tPart2: {part2}");
 }
 
-type Loc = (usize, usize);
+type Loc = (isize, isize);
 type Locs = Vec<Loc>;
 type Node = char;
 type Antenna = Node;
@@ -31,10 +31,11 @@ fn find_antennas_in(map: &Map) -> Antennas {
         for j in 0..map[0].len() {
             let a = map[i][j];
             if a != '.' && a != '#' {
+                let loc = (i as isize, j as isize);
                 antennas
                     .entry(a)
-                    .and_modify(|locs| locs.push((i, j)))
-                    .or_insert(vec![(i, j)]);
+                    .and_modify(|locs| locs.push(loc.clone()))
+                    .or_insert(vec![loc.clone()]);
             }
         }
     }
@@ -42,30 +43,60 @@ fn find_antennas_in(map: &Map) -> Antennas {
     antennas
 }
 
-fn calc_antinodes_of(antennas: &Antennas, map: &Map) -> Locs {
-    let mut antinode_locs = Locs::new();
+fn in_bounds(loc: &Loc, map: &Map) -> bool {
+    loc.0 >= 0 && loc.0 < map.len() as isize && loc.1 >= 0 && loc.1 < map[0].len() as isize
+}
 
-    for (antenna, locs) in antennas {
-        for (a, b) in locs.into_iter().tuple_windows() {
-            if let Some(diff_0) = b.0.checked_sub(a.0) {
-                if let Some(diff_1) = b.1.checked_sub(a.1) {
-                    if diff_0 < map.len() && diff_1 < map[0].len() {
-                        continue;
-                    }
-                }
-            }
+fn calc_two_antinodes_of(loc_a: &Loc, loc_b: &Loc, map: &Map) -> (Option<Loc>, Option<Loc>) {
+    let diff_0 = loc_b.0 - loc_a.0;
+    let diff_1 = loc_b.1 - loc_a.1;
+    let loc_a = (loc_a.0 - diff_0, loc_a.1 - diff_1);
+    let loc_b = (loc_b.0 + diff_0, loc_b.1 + diff_1);
+
+    (
+        if in_bounds(&loc_a, &map) {
+            Some(loc_a)
+        } else {
+            None
+        },
+        if in_bounds(&loc_b, &map) {
+            Some(loc_b)
+        } else {
+            None
+        },
+    )
+}
+
+fn calc_antinodes_of(locs: &Locs, map: &Map) -> Locs {
+    let mut antinode_locs = Locs::new();
+    for ab in locs.into_iter().combinations(2) {
+        let (opt_a, opt_b) = calc_two_antinodes_of(&ab[0], &ab[1], map);
+        if let Some(loc_a) = opt_a {
+            antinode_locs.push(loc_a);
+        }
+        if let Some(loc_b) = opt_b {
+            antinode_locs.push(loc_b);
         }
     }
 
     antinode_locs
 }
 
+fn calc_all_antinodes_of(antennas: &Antennas, map: &Map) -> Locs {
+    antennas
+        .iter()
+        .map(|(_, locs)| calc_antinodes_of(locs, map))
+        .flatten()
+        .collect::<Locs>()
+}
+
 fn solve_part1(input: &String) -> String {
     let map = parse_input(input);
     let antennas = find_antennas_in(&map);
-    println!("{antennas:?}");
-    let antinodes = calc_antinodes_of(&antennas, &map);
-    String::new()
+    let antinodes = calc_all_antinodes_of(&antennas, &map);
+    HashSet::<Loc>::from_iter(antinodes.into_iter())
+        .len()
+        .to_string()
 }
 
 fn solve_part2(input: &String) -> String {
@@ -141,8 +172,19 @@ mod test {
     }
 
     #[test]
+    fn test_calc_all_antinodes_of() {
+        let map = parse_input(&get_input(0));
+        let antennas = find_antennas_in(&map);
+        let antinodes = calc_all_antinodes_of(&antennas, &map);
+        assert!(antinodes.contains(&(1, 3)));
+    }
+
+    #[test]
     fn test_full_part1() {
-        assert_eq!(solve_part1(&get_input(0)), "14");
+        assert_eq!(solve_part1(&get_input(0)), "2");
+        assert_eq!(solve_part1(&get_input(1)), "4");
+        assert_eq!(solve_part1(&get_input(2)), "4");
+        assert_eq!(solve_part1(&get_input(3)), "14");
     }
 
     #[test]
