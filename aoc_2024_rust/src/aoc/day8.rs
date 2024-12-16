@@ -67,6 +67,25 @@ fn calc_two_antinodes_of(loc_a: &Loc, loc_b: &Loc, map: &Map) -> (Option<Loc>, O
     )
 }
 
+fn calc_antinodes_inline_with(loc_a: &Loc, loc_b: &Loc, map: &Map) -> Locs {
+    let mut antinodes = Locs::new();
+    let diff_0 = loc_b.0 - loc_a.0;
+    let diff_1 = loc_b.1 - loc_a.1;
+    let mut i = 1;
+    loop {
+        let loc = (loc_b.0 + (diff_0 * i), loc_b.1 + (diff_1 * i));
+        i += 1;
+
+        if in_bounds(&loc, &map) {
+            antinodes.push(loc);
+        } else {
+            break;
+        };
+    }
+
+    antinodes
+}
+
 fn calc_antinodes_of(locs: &Locs, map: &Map) -> Locs {
     let mut antinode_locs = Locs::new();
     for ab in locs.into_iter().combinations(2) {
@@ -82,10 +101,30 @@ fn calc_antinodes_of(locs: &Locs, map: &Map) -> Locs {
     antinode_locs
 }
 
+fn calc_antinodes_2_of(locs: &Locs, map: &Map) -> Locs {
+    let mut antinode_locs = Locs::new();
+    for ab in locs.into_iter().combinations(2) {
+        antinode_locs.extend(calc_antinodes_inline_with(&ab[0], &ab[1], map));
+        antinode_locs.extend(calc_antinodes_inline_with(&ab[1], &ab[0], map));
+        antinode_locs.push(ab[0].clone());
+        antinode_locs.push(ab[1].clone());
+    }
+
+    antinode_locs
+}
+
 fn calc_all_antinodes_of(antennas: &Antennas, map: &Map) -> Locs {
     antennas
         .iter()
         .map(|(_, locs)| calc_antinodes_of(locs, map))
+        .flatten()
+        .collect::<Locs>()
+}
+
+fn calc_all_antinodes_2_of(antennas: &Antennas, map: &Map) -> Locs {
+    antennas
+        .iter()
+        .map(|(_, locs)| calc_antinodes_2_of(locs, map))
         .flatten()
         .collect::<Locs>()
 }
@@ -100,7 +139,13 @@ fn solve_part1(input: &String) -> String {
 }
 
 fn solve_part2(input: &String) -> String {
-    String::new()
+    let map = parse_input(input);
+    let antennas = find_antennas_in(&map);
+    let antinodes = calc_all_antinodes_2_of(&antennas, &map);
+
+    HashSet::<Loc>::from_iter(antinodes.into_iter())
+        .len()
+        .to_string()
 }
 
 #[cfg(test)]
@@ -158,6 +203,18 @@ mod test {
 ..........#.
 ..........#.
 ",
+        "
+T....#....
+...T......
+.T....#...
+.........#
+..#.......
+..........
+...#......
+..........
+....#.....
+..........
+",
     ];
 
     fn get_input(ix: usize) -> String {
@@ -189,6 +246,7 @@ mod test {
 
     #[test]
     fn test_full_part2() {
-        assert_eq!(solve_part2(&get_input(0)), "");
+        assert_eq!(solve_part2(&get_input(4)), "9");
+        assert_eq!(solve_part2(&get_input(3)), "34");
     }
 }
