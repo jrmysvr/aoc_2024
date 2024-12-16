@@ -6,6 +6,7 @@ pub mod day4;
 pub mod day5;
 pub mod day6;
 pub mod day7;
+pub mod day8;
 pub mod input;
 
 static DAYS: &[fn()] = &[
@@ -16,8 +17,7 @@ static DAYS: &[fn()] = &[
     day5::run,
     day6::run,
     day7::run,
-    // Day 8
-    || {},
+    day8::run,
     // Day 9
     || {},
     day10::run,
