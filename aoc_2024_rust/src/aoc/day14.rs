@@ -99,14 +99,13 @@ fn render_robot_map(robots: &Robots) {
         }
         map.push(row);
     }
+    let rendered = map
+        .into_iter()
+        .map(|row| row.into_iter().collect::<Vec<String>>().join(""))
+        .collect::<Vec<String>>()
+        .join("\n");
 
-    println!(
-        "{}",
-        map.into_iter()
-            .map(|row| row.into_iter().collect::<Vec<String>>().join(""))
-            .collect::<Vec<String>>()
-            .join("\n")
-    );
+    println!("{}", rendered);
     println!("");
 }
 
@@ -157,7 +156,7 @@ fn solve_part1_with_map_dim(input: &String, map_dim: &XY) -> String {
             robot.tick();
         }
     }
-    
+
     (0..=3)
         .map(|ix| count_robots_in_quadrant(ix, &robots))
         .fold(1, |acc, count| acc * count)
@@ -169,23 +168,53 @@ fn solve_part1(input: &String) -> String {
     solve_part1_with_map_dim(input, &map_dim)
 }
 
+fn find_lines(robots: &Robots, line_len: Num) -> bool {
+    let map_dim = robots[0].map_dim.clone();
+    let mut xstart = 0;
+    let mut ystart = 0;
+    let mut count = 0;
+    for y in 0..map_dim.y {
+        for x in 0..map_dim.x {
+            count = count_robots_in(XY::new(x, y), robots);
+            if count == 0 {
+                xstart = x;
+            }
+            if x - xstart >= line_len {
+                return true;
+            }
+        }
+        if count == 0 {
+            ystart = y;
+        }
+        if y - ystart >= line_len {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn solve_part2(input: &String) -> String {
-    /*
     let map_dim = XY::new(101, 103);
     let mut robots = parse_input(input, &map_dim);
 
-    let n_ticks = 200;
-    for _ in 0..n_ticks {
+    // I originally guessed this, and it was wrong. So, it shouldn't be over 10_000...
+    let n_ticks = 10_000;
+    let mut n_seconds = 0;
+    for i in 1..=n_ticks {
         for robot in robots.iter_mut() {
             robot.tick();
         }
-        render_robot_map(&robots);
-    }
-    
-    //render_robot_map(&robots);
-    */
 
-    String::new()
+        // Find lines in the map - maybe it's a tree
+        if find_lines(&robots, 10) {
+            render_robot_map(&robots);
+            n_seconds = i;
+            break;
+        }
+    }
+
+    n_seconds.to_string()
 }
 
 #[cfg(test)]
