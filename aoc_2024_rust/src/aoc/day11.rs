@@ -89,7 +89,7 @@ fn solve_part1(input: &String) -> String {
     stones.len().to_string()
 }
 
-fn solve_part2(input: &String) -> String {
+fn solve_part2(_input: &String) -> String {
     /*
     let mut stones = parse_input(input);
 

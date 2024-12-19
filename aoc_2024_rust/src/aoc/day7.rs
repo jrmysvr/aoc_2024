@@ -85,7 +85,7 @@ fn solve_part1(input: &String) -> String {
     calibration_result.to_string()
 }
 
-fn solve_part2(input: &String) -> String {
+fn solve_part2(_input: &String) -> String {
     String::new()
 }
 
