@@ -28,11 +28,11 @@ pub fn run() {
     println!("\tPart2: {part2}");
 }
 
-fn solve_part1(input: &String) -> String {
+fn solve_part1(_input: &String) -> String {
     String::new()
 }
 
-fn solve_part2(input: &String) -> String {
+fn solve_part2(_input: &String) -> String {
     String::new()
 }
 
@@ -40,7 +40,7 @@ fn solve_part2(input: &String) -> String {
 mod test {
     use super::*;
 
-    const INPUT: [&str; 1] = [
+    const INPUT: &[&str] = &[
         "",
     ];
 
