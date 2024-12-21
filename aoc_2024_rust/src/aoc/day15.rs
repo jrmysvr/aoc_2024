@@ -10,44 +10,63 @@ pub fn run() {
     println!("\tPart2: {part2}");
 }
 
+type Num = isize;
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct Thing {
-    i: usize,
-    j: usize,
+    c: char,
+    i: Num,
+    j: Num,
 }
 
 impl Thing {
-    fn new(i: usize, j: usize) -> Self {
-        Self { i: i, j: j }
+    fn new(c: char, i: Num, j: Num) -> Self {
+        Self { c: c, i: i, j: j }
     }
 
-    fn go(&mut self, direction: char) {
-        match direction {
-            '>' => { self.j += 1; },
-            'v' => { self.i += 1; },
-            '<' => { self.j -= 1; },
-            '^' => { self.i -= 1; },
-            _ => panic!("Unsupported direction: {direction}"),
-        }
+    fn loc(&self) -> Loc {
+        (self.i, self.j)
+    }
+
+    fn move_to(&self, loc: Loc) -> Thing {
+        Thing::new(self.c, loc.0, loc.1)
     }
 }
+
+type Things = Vec<Thing>;
 
 type Row = Vec<char>;
 type Grid = Vec<Row>;
 type Direction = char;
 type Moves = Vec<Direction>;
-type Loc = (usize, usize);
+type Loc = (Num, Num);
+
+fn move_loc(loc: Loc, direction: Direction) -> Loc {
+    match direction {
+        '>' => (loc.0, loc.1 + 1),
+        'v' => (loc.0 + 1, loc.1),
+        '<' => (loc.0, loc.1 - 1),
+        '^' => (loc.0 - 1, loc.1),
+        _ => panic!("Unknown direction: {direction}"),
+    }
+}
 fn find_in(grid: &Grid, elem: char) -> Vec<Loc> {
     let mut output = Vec::<Loc>::new();
     for i in 0..grid.len() {
         for j in 0..grid[0].len() {
             if grid[i][j] == elem {
-                output.push((i, j));
+                output.push((i as Num, j as Num));
             }
         }
     }
 
     output
+}
+
+fn find_things_in(grid: &Grid, elem: char) -> Things {
+    find_in(grid, elem)
+        .iter()
+        .map(|loc| Thing::new(elem, loc.0 as Num, loc.1 as Num))
+        .collect::<Things>()
 }
 
 fn parse_input(input: &String) -> (Thing, Grid, Moves) {
@@ -57,26 +76,74 @@ fn parse_input(input: &String) -> (Thing, Grid, Moves) {
         .split('\n')
         .map(|row| row.chars().collect::<Row>())
         .collect::<Grid>();
-    let (ri, rj) = find_in(&grid, '@')[0];
-    let robot = Thing::new(ri, rj);
+    let robot = find_things_in(&grid, '@')[0].clone();
 
-    let moves = move_str.chars().collect::<Moves>();
+    let moves = move_str.chars().filter(|m| *m != '\n').collect::<Moves>();
 
     (robot, grid, moves)
 }
 
-fn move_robot_in(grid: &mut Grid, direction: Direction) {
+fn in_bounds(loc: Loc, grid: &Grid) -> bool {
+    loc.0 >= 0 && loc.0 < grid.len() as Num && loc.1 >= 0 && loc.1 < grid[0].len() as Num
+}
 
+fn get_adjacent_to(thing: &Thing, direction: Direction, grid: &Grid) -> Thing {
+    let loc = move_loc(thing.loc(), direction);
+    if in_bounds(loc, grid) {
+        return get_thing_at(loc, grid);
+    }
+
+    thing.clone()
+}
+
+fn move_thing(thing: &Thing, grid: &Grid, direction: Direction) -> Option<(Thing, Grid)> {
+    if in_bounds(move_loc(thing.loc(), direction), grid) {
+        let thing_to_push = get_adjacent_to(thing, direction, grid);
+        match thing_to_push.c {
+            // Move!
+            '.' => {
+                let moved_thing = thing.move_to(thing_to_push.loc());
+                let mut new_grid = grid.clone();
+                new_grid[thing.i as usize][thing.j as usize] = '.';
+                new_grid[moved_thing.i as usize][moved_thing.j as usize] = moved_thing.c;
+                return Some((moved_thing, new_grid));
+            }
+            // Need to push stuff
+            'O' => {
+                if let Some((_, grid)) = move_thing(&thing_to_push, grid, direction) {
+                    return move_thing(thing, &grid, direction);
+                }
+            }
+            // At a wall, so do nothing
+            '#' => {}
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn get_thing_at(loc: Loc, grid: &Grid) -> Thing {
+    let loc0 = loc.0 as usize;
+    let loc1 = loc.1 as usize;
+    Thing::new(grid[loc0][loc1], loc.0, loc.1)
 }
 
 fn solve_part1(input: &String) -> String {
-    let (_robot, mut grid, moves) = parse_input(input);
+    let (mut robot, mut grid, moves) = parse_input(input);
 
     for direction in moves {
-        move_robot_in(&mut grid, direction);
+        if let Some(robot_grid) = move_thing(&robot, &grid, direction) {
+            (robot, grid) = robot_grid;
+        }
     }
 
-    String::new()
+    let boxes = find_things_in(&grid, 'O');
+    boxes
+        .iter()
+        .map(|b| 100 * b.i + b.j)
+        .fold(0, |acc, gps_coor| acc + gps_coor)
+        .to_string()
 }
 
 fn solve_part2(_input: &String) -> String {
@@ -130,37 +197,80 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^",
     #[test]
     fn test_parse_input() {
         let (robot, grid, moves) = parse_input(&get_input(1));
-        assert_eq!(robot, Thing::new(2, 2));
+        assert_eq!(robot, Thing::new('@', 2, 2));
         assert_eq!(grid[0][0], '#');
         assert_eq!(moves[0], '<');
     }
 
     #[test]
-    fn test_move_thing() {
-        let mut thing = Thing::new(1,1);
+    fn test_move_stuff() {
         // Move right
-        thing.go('>');
-        assert_eq!(thing, Thing::new(1,2), "failed moving right");
+        let loc = move_loc((1, 1), '>');
+        assert_eq!(loc, (1, 2), "failed moving right");
 
-        let mut thing = Thing::new(1,1);
-        // Move down 
-        thing.go('v');
-        assert_eq!(thing, Thing::new(2,1), "failed moving down");
+        // Move down
+        let loc = move_loc((1, 1), 'v');
+        assert_eq!(loc, (2, 1), "failed moving down");
 
-        let mut thing = Thing::new(1,1);
         // Move left
-        thing.go('<');
-        assert_eq!(thing, Thing::new(1,0), "failed moving left");
+        let loc = move_loc((1, 1), '<');
+        assert_eq!(loc, (1, 0), "failed moving left");
 
-        let mut thing = Thing::new(1,1);
-        // Move up 
-        thing.go('^');
-        assert_eq!(thing, Thing::new(0,1), "failed moving up");
+        // Move up
+        let loc = move_loc((1, 1), '^');
+        assert_eq!(loc, (0, 1), "failed moving up");
+
+        let (robot, grid, _) = parse_input(&get_input(1));
+        let robot_grid = move_thing(&robot, &grid, '>');
+        assert!(robot_grid.is_some());
+        let Some((robot, grid)) = robot_grid else {
+            panic!("Unexpected")
+        };
+        assert_eq!(robot.i, 2);
+        assert_eq!(robot.j, 3);
+        assert_eq!(get_thing_at(robot.loc(), &grid), robot);
+    }
+
+    #[test]
+    fn test_push_stuff() {
+        let (robot, grid, _) = parse_input(&get_input(1));
+        assert!(move_thing(&robot, &grid, '<').is_none());
+
+        let robot_grid = move_thing(&robot, &grid, '^');
+        let Some((robot, grid)) = robot_grid else {
+            panic!("Unexpected")
+        };
+
+        assert_eq!(robot.i, 1);
+        assert_eq!(robot.j, 2);
+        let loc = (robot.i - 1, robot.j);
+        let w = Thing::new('#', loc.0, loc.1);
+        assert_eq!(get_thing_at(loc, &grid), w);
+
+        assert!(move_thing(&robot, &grid, '^').is_none());
+
+        let robot_grid = move_thing(&robot, &grid, '>');
+        let Some((robot, grid)) = robot_grid else {
+            panic!("Unexpected")
+        };
+        let robot_grid = move_thing(&robot, &grid, '>');
+        let Some((robot, grid)) = robot_grid else {
+            panic!("Unexpected")
+        };
+
+        assert!(move_thing(&robot, &grid, '>').is_none());
+        let robot_grid = move_thing(&robot, &grid, 'v');
+        let Some((robot, grid)) = robot_grid else {
+            panic!("Unexpected")
+        };
+
+        assert!(move_thing(&robot, &grid, 'v').is_none());
     }
 
     #[test]
     fn test_full_part1() {
-        assert_eq!(solve_part1(&get_input(0)), "");
+        assert_eq!(solve_part1(&get_input(0)), "10092");
+        assert_eq!(solve_part1(&get_input(1)), "2028");
     }
 
     #[test]
