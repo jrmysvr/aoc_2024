@@ -3,6 +3,7 @@ pub mod day10;
 pub mod day11;
 pub mod day14;
 pub mod day15;
+pub mod day16;
 pub mod day2;
 pub mod day3;
 pub mod day4;
@@ -31,6 +32,7 @@ static DAYS: &[fn()] = &[
     || {},
     day14::run,
     day15::run,
+    day16::run,
 ];
 
 pub fn run_all() {
